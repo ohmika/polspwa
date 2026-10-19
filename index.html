@@ -210,7 +210,7 @@ const KEEP = 15 * FS;                  // samples kept per channel
 const WARMUP = Math.round(1.2 * FS);   // filter settling time, never analysed
 const MIN_ANALYSIS = 6 * FS;           // shortest window that may produce a rate
 const TRUST = 0.55;                    // confidence needed to show a provisional rate
-const MIN_STD = 0.06;                  // below this the signal is just sensor noise (pixel levels)
+const MIN_STD = 0.025;                 // below this the signal is just sensor noise (pixel levels)
 const F_LO = 0.69, F_HI = 3.61, F_STEP = 0.02;           // spectrum grid (Hz)
 const BINS = Math.round((F_HI - F_LO) / F_STEP) + 1;
 const B_MIN = Math.round((MIN_BPM / 60 - F_LO) / F_STEP);
@@ -392,11 +392,11 @@ const COVER_OK = 0.55;                 // coverage needed to count a frame as "f
 
 function fingerCoverage(r, g, b) {
   const sum = r + g + b;
-  if (sum < 12) return 0;
+  if (sum < 9) return 0;
   const redness = r / sum, brightness = sum / 3;
   if (redness < 0.42) return 0;
   let score = Math.min(1, (redness - 0.42) / 0.2);
-  if (brightness < 12) score *= brightness / 12;
+  if (brightness < 6) score *= brightness / 6;       // near-black frames are mostly sensor noise
   if (brightness > 235) score *= Math.max(0, (255 - brightness) / 20);
   return clamp01(score);
 }
@@ -465,9 +465,12 @@ const LOCK_CONFIDENCE = 0.7;           // confidence every analysis must reach t
 const LOCK_COUNT = 10;                 // consecutive analyses (2.5 s) that must agree
 const LOCK_SPREAD = 3;                 // ...within this many bpm
 const ANALYSIS_MS = 250, UI_MS = 120;
+const SHOW_AFTER = 4;                  // analyses in a row (1 s) that must find a rate before it is shown
 const NO_FINGER_MS = 45000;            // give up when no finger shows up
 const MEASURE_MS = 60000;              // give up when no steady rhythm shows up
-const STALL_MS = 3000;                 // give up when the camera stops delivering frames
+const STALL_MS = 3000;
+const WEAK_STD = 0.12;                 // below this (pixel levels) the pulse is too faint to find quickly
+const WEAK_AFTER = 12;                 // seconds before the tip about weak signals appears                 // give up when the camera stops delivering frames
 const TRACE_SAMPLES = Math.round(4.5 * FS);
 const USE_VFC = typeof HTMLVideoElement !== 'undefined' && 'requestVideoFrameCallback' in HTMLVideoElement.prototype;
 
@@ -475,7 +478,7 @@ const IDLE = { phase: 'idle', bpm: null, locked: false, coverage: 0, seconds: 0,
 const S = { running: false, torch: false, facingUser: false, error: null, saved: false, history: loadReadings(), live: { ...IDLE } };
 const R = {
   stream: null, pipe: new Pipeline(), channel: 'r', handle: 0, mediaTime: -1, starting: false, wake: null, watch: 0,
-  canvas: null, ctx: null, gain: 1, recent: [], bpm: null, beats: 0, beatAt: 0, scanTotal: 0,
+  canvas: null, ctx: null, gain: 1, recent: [], bpm: null, streak: 0, std: 0, rhythm: false, beats: 0, beatAt: 0, scanTotal: 0,
   startedAt: 0, fingerAt: 0, lostAt: 0, frameAt: 0, analysisAt: 0, uiAt: 0, wasResult: false, lastSay: ''
 };
 
@@ -542,6 +545,7 @@ function render() {
   if (L.phase === 'requesting') status = 'Camera starten…';
   else if (measuring) {
     if (L.phase === 'need-finger') status = 'Leg je vingertop op de lens.';
+    else if (L.seconds >= WEAK_AFTER && L.weak) status = 'Het signaal is zwak. Zorg voor meer licht op je vinger en druk niet te hard.';
     else if (L.seconds < MIN_LOCK_SECONDS) status = 'Blijf stil en adem rustig door.';
     else status = 'Bijna klaar. Houd je vinger rustig op de lens.';
   } else if (showResult) status = zone.hint;
@@ -607,7 +611,7 @@ function paintTrace() {
   let peak = 0;
   for (let i = 0; i < seg.length; i++) peak = Math.max(peak, Math.abs(seg[i]));
   R.gain = peak > R.gain ? peak : R.gain * 0.97 + peak * 0.03;
-  const scale = Math.max(R.gain, 0.15);
+  const scale = Math.max(R.gain, 0.04);
   const pts = new Array(seg.length);
   for (let i = 0; i < seg.length; i++) {
     const x = 300 - (seg.length - 1 - i) / (TRACE_SAMPLES - 1) * 300;   // new samples enter from the right
@@ -622,7 +626,8 @@ function scanBeats(now) {
   const ch = R.pipe[R.channel];
   const fresh = ch.total - R.scanTotal;
   R.scanTotal = ch.total;
-  if (!ch.settled() || R.gain < 0.15) return;
+  // A strong wave pulses at once; a weak one only once the analysis has found a real rhythm in it.
+  if (!ch.settled() || R.gain < 0.04 || (R.gain < 0.15 && !R.rhythm)) return;
   const gap = Math.max(300, 0.5 * 60000 / (R.bpm || 100));
   for (let k = Math.min(fresh, ch.n - 2); k >= 1; k--) {
     const c = ch.n - 1 - k, o = ch.out;
@@ -636,7 +641,10 @@ function scanBeats(now) {
 function runAnalysis(coverage) {
   const a = analyze(R.pipe, R.channel);
   R.channel = a.channel;
-  R.bpm = a.bpm;
+  R.streak = a.bpm != null ? R.streak + 1 : 0;
+  R.bpm = R.streak >= SHOW_AFTER ? a.bpm : null;         // a lone estimate on noise is never shown
+  R.std = a.std;
+  R.rhythm = a.peakiness >= 0.4;
   if (a.bpm != null && a.confidence >= LOCK_CONFIDENCE) {
     R.recent.push(a.bpm);
     if (R.recent.length > LOCK_COUNT) R.recent.shift();
@@ -669,7 +677,7 @@ function step(now) {
   } else if (!R.lostAt) {
     R.lostAt = now;
   } else if (now - R.lostAt > 1000 && pipe.has) {
-    pipe.reset(); R.recent.length = 0; R.bpm = null; R.beats = 0; R.scanTotal = 0; R.gain = 1;
+    pipe.reset(); R.recent.length = 0; R.bpm = null; R.streak = 0; R.std = 0; R.rhythm = false; R.beats = 0; R.scanTotal = 0; R.gain = 1;
   }
 
   if (pipe.ready) { scanBeats(now); paintTrace(); }
@@ -684,7 +692,7 @@ function step(now) {
   if (now - R.uiAt >= UI_MS) {
     R.uiAt = now;
     const phase = coverage < COVER_OK ? 'need-finger' : R.bpm == null ? 'locking' : 'live';
-    S.live = { phase, bpm: R.bpm, locked: false, coverage, seconds: Math.floor(pipe.seconds), beats: R.beats };
+    S.live = { phase, bpm: R.bpm, locked: false, coverage, seconds: Math.floor(pipe.seconds), beats: R.beats, weak: R.bpm == null && R.std > 0 && R.std < WEAK_STD };
     render();
   }
 }
@@ -756,7 +764,7 @@ async function start() {
   R.starting = true;
   S.error = null; S.saved = false;
   R.pipe.reset();
-  Object.assign(R, { channel: 'r', mediaTime: -1, gain: 1, recent: [], bpm: null, beats: 0, beatAt: 0, scanTotal: 0, fingerAt: 0, lostAt: 0, analysisAt: 0, uiAt: 0 });
+  Object.assign(R, { channel: 'r', mediaTime: -1, gain: 1, recent: [], bpm: null, streak: 0, std: 0, rhythm: false, beats: 0, beatAt: 0, scanTotal: 0, fingerAt: 0, lostAt: 0, analysisAt: 0, uiAt: 0 });
   el.trace.setAttribute('points', '');
   S.live = { ...IDLE, phase: 'requesting' };
   render();
