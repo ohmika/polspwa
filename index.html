@@ -1,0 +1,841 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#14110f">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="Meet je hartslag met de camera. Alles blijft op dit apparaat.">
+<title>Pols</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Pols">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2314110f'/%3E%3Cpath fill='%23f6f1ea' fill-rule='evenodd' d='M8 6h8.5c6.3 0 8.1 3.2 8.1 7.2 0 4.4-2.8 7-8.4 7H12.6V26H8V6zm4.6 3.6h3.2c3.4 0 4.6 1.6 4.6 3.6s-1.4 3.6-4.8 3.6H12.6V9.6z'/%3E%3Crect x='8' y='27.2' width='10' height='1.6' rx='.8' fill='%23e5484d'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#14110f;--surface:#221c18;--surface-2:#2c241f;--fg:#f6f1ea;--muted:#b3a89c;--primary:#e5484d;--accent:#f2666b;--border:#3a312b;
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --display:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{background:var(--bg);color:var(--fg);font-family:var(--sans);-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%}
+body{margin:0;min-height:100dvh;background:var(--bg)}
+[hidden]{display:none!important}
+h1,h2,p,ol,ul{margin:0}
+ol,ul{padding:0;list-style:none}
+h1,h2{text-wrap:balance}
+p{text-wrap:pretty}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:scale .15s ease-out,background-color .15s ease-out,border-color .15s ease-out,opacity .15s ease-out}
+button:disabled{cursor:default}
+button:active:not(:disabled){scale:.96}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+.icon{fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.bar{height:4px;background:var(--primary)}
+main{display:flex;flex-direction:column;gap:2rem;max-width:28rem;margin:0 auto;padding:2rem 1.25rem 3.5rem;padding-left:max(1.25rem,env(safe-area-inset-left));padding-right:max(1.25rem,env(safe-area-inset-right));padding-bottom:max(3.5rem,calc(env(safe-area-inset-bottom) + 1.5rem))}
+header{display:flex;flex-direction:column;gap:.75rem}
+.eyebrow{font-size:.75rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--display);font-weight:400;font-size:3rem;line-height:1}
+.lead{max-width:24rem;line-height:1.5;color:var(--muted)}
+
+.card{display:flex;flex-direction:column;gap:1.25rem;padding:1.25rem;border:1px solid var(--border);border-radius:1.5rem;background:var(--surface)}
+.top{display:flex;align-items:center;justify-content:space-between;gap:1rem}
+.lens{position:relative;flex:none;width:6rem;height:6rem;border-radius:50%;overflow:hidden;background:var(--surface-2);box-shadow:0 0 0 2px var(--border);transition:box-shadow .2s ease-out}
+.lens.on{box-shadow:0 0 0 2px var(--primary)}
+video{display:block;width:6rem;height:6rem;object-fit:cover}
+video.mirror{transform:scaleX(-1)}
+video.off{opacity:0}
+.idle{position:absolute;inset:0;display:grid;place-items:center;color:var(--accent)}
+.idle svg{width:2.5rem;height:2.5rem}
+.live{position:absolute;right:.5rem;bottom:.5rem;width:1.25rem;height:1.25rem;color:var(--fg);stroke-width:2.25;pointer-events:none}
+.beat{animation:beat .48s cubic-bezier(.2,.7,.2,1)}
+@keyframes beat{0%{transform:scale(1)}35%{transform:scale(1.14)}100%{transform:scale(1)}}
+
+.read{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-end;gap:.25rem;text-align:right}
+.torch{display:inline-flex;align-items:center;gap:.25rem;font-size:.75rem;font-weight:500;color:var(--accent)}
+.torch svg{width:.875rem;height:.875rem}
+.bpm{font-size:4.5rem;line-height:1;font-weight:600;font-variant-numeric:tabular-nums;transition:opacity .2s ease-out}
+.bpm.provisional{opacity:.55}
+.unit{font-size:.875rem;color:var(--muted)}
+
+.info{display:flex;flex-direction:column;gap:.25rem}
+.zone{font-family:var(--display);font-style:italic;font-size:1.5rem;color:var(--accent)}
+.status{font-size:.875rem;line-height:1.5;color:var(--muted)}
+.note{font-size:.875rem}
+
+.trace{display:block;width:100%;height:6rem}
+.trace line{stroke:var(--muted);stroke-width:1}
+.trace polyline{fill:none;stroke:var(--primary);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+
+.cover{display:flex;flex-direction:column;gap:.875rem}
+.gauge{display:flex;flex-direction:column;gap:.5rem}
+.gauge-row{display:flex;justify-content:space-between;font-size:.75rem;color:var(--muted)}
+.meter{height:.375rem;border-radius:999px;overflow:hidden;background:var(--surface-2)}
+.meter div{height:100%;border-radius:999px;background:var(--primary);transform-origin:left center;transition:transform .15s ease-out}
+.hint{font-size:.875rem;line-height:1.5;color:var(--muted)}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;width:100%;height:3rem;border-radius:999px;font-size:1rem;font-weight:600}
+.btn.primary{background:var(--primary);color:var(--bg)}
+.btn.ghost{border:1px solid var(--border);background:var(--bg)}
+.btn.ghost:disabled{opacity:.6}
+.btn.outline{border:1px solid var(--border);font-weight:500}
+
+section.block{display:flex;flex-direction:column;gap:.75rem}
+h2{font-size:.875rem;font-weight:600;letter-spacing:.025em;text-transform:uppercase;color:var(--muted)}
+.steps{display:flex;flex-direction:column;gap:.75rem}
+.steps li{display:flex;align-items:flex-start;gap:.75rem}
+.steps .ic{flex:none;display:grid;place-items:center;width:2.75rem;height:2.75rem;border-radius:50%;background:var(--surface);color:var(--accent)}
+.steps .ic svg{width:1.25rem;height:1.25rem}
+.steps .tx{display:flex;flex-direction:column;gap:.125rem;padding-top:.125rem}
+.steps b{font-weight:500}
+.steps .tx span{font-size:.875rem;line-height:1.5;color:var(--muted)}
+
+.hist-head{display:flex;align-items:center;justify-content:space-between;gap:.75rem}
+.hist-head button{min-height:2.75rem;margin-right:-.75rem;padding:0 .75rem;border-radius:999px;font-size:.875rem;color:var(--muted)}
+.hist-head button[data-armed]{color:var(--accent)}
+#hist{display:flex;flex-direction:column;gap:.5rem}
+#hist li{display:flex;align-items:baseline;gap:.75rem;padding:.75rem 1rem;border-radius:1rem;background:var(--surface)}
+#hist .n{font-size:1.25rem;font-weight:600;font-variant-numeric:tabular-nums}
+#hist .z{flex:1;font-family:var(--display);font-style:italic;font-size:1.125rem;color:var(--accent)}
+#hist time{font-size:.875rem;color:var(--muted)}
+.disclaimer{font-size:.75rem;line-height:1.5;color:var(--muted)}
+
+@media (prefers-reduced-motion:reduce){
+  .beat{animation:none}
+  button:active:not(:disabled){scale:1}
+  .meter div,.lens,.bpm{transition:none}
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M3.22 12H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></symbol>
+  <symbol id="i-hand" viewBox="0 0 24 24"><path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"/><path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></symbol>
+  <symbol id="i-activity" viewBox="0 0 24 24"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></symbol>
+</svg>
+
+<div class="bar"></div>
+<main>
+  <header>
+    <p class="eyebrow">Pols</p>
+    <h1>Hartslag</h1>
+    <p class="lead">Schatting via de camera. De berekening blijft op dit apparaat, er wordt niets verstuurd.</p>
+  </header>
+
+  <section class="card" aria-label="Meting">
+    <div class="top">
+      <div class="lens" id="lens">
+        <video id="video" class="off" playsinline muted disablepictureinpicture disableremoteplayback aria-hidden="true" tabindex="-1"></video>
+        <div class="idle" id="idle"><svg class="icon" id="idleHeart" aria-hidden="true"><use href="#i-heart"/></svg></div>
+        <svg class="icon live" id="liveHeart" aria-hidden="true" hidden><use href="#i-heart"/></svg>
+      </div>
+      <div class="read">
+        <p class="torch" id="torch" hidden><svg class="icon" aria-hidden="true"><use href="#i-zap"/></svg>Flits aan</p>
+        <p class="bpm" id="bpm">—</p>
+        <p class="unit">slagen per minuut</p>
+      </div>
+    </div>
+
+    <div class="info">
+      <p class="zone" id="zone" hidden></p>
+      <p class="status" id="status">Klaar wanneer jij dat bent.</p>
+      <p class="note" id="beats" hidden></p>
+      <p class="note" id="saved" hidden></p>
+    </div>
+
+    <svg class="trace" viewBox="0 0 300 96" preserveAspectRatio="none" aria-hidden="true">
+      <line x1="0" y1="48" x2="300" y2="48" vector-effect="non-scaling-stroke"/>
+      <polyline id="trace" points="" vector-effect="non-scaling-stroke"/>
+    </svg>
+
+    <div class="cover" id="cover" hidden>
+      <div class="gauge">
+        <div class="gauge-row"><span>Lens</span><span id="coverLabel">Lens vrij</span></div>
+        <div class="meter" aria-hidden="true"><div id="coverFill"></div></div>
+      </div>
+      <div class="gauge">
+        <div class="gauge-row"><span>Meting</span><span id="progressLabel">0 van 10 s</span></div>
+        <div class="meter" aria-hidden="true"><div id="progressFill"></div></div>
+      </div>
+      <p class="hint" id="noTorch" hidden>Geen flits beschikbaar. Zorg voor veel licht op je vinger, bijvoorbeeld een lamp of daglicht.</p>
+    </div>
+
+    <button type="button" class="btn primary" id="main">Start meting</button>
+    <button type="button" class="btn outline" id="save" hidden>Bewaar deze meting</button>
+  </section>
+
+  <section class="block" id="steps">
+    <h2>Zo werkt het</h2>
+    <ol class="steps">
+      <li><span class="ic"><svg class="icon" aria-hidden="true"><use href="#i-camera"/></svg></span><span class="tx"><b>Camera</b><span>Tik op start en geef toegang tot de camera. Waar mogelijk gaat de flits aan.</span></span></li>
+      <li><span class="ic"><svg class="icon" aria-hidden="true"><use href="#i-hand"/></svg></span><span class="tx"><b>Vingertop</b><span>Leg je vingertop zacht over de achtercamera en de flits, tot het beeld egaal rood is.</span></span></li>
+      <li><span class="ic"><svg class="icon" aria-hidden="true"><use href="#i-activity"/></svg></span><span class="tx"><b>Stilhouden</b><span>Blijf ongeveer tien seconden stil. Adem gewoon door.</span></span></li>
+    </ol>
+  </section>
+
+  <section class="block">
+    <div class="hist-head">
+      <h2>Geschiedenis</h2>
+      <button type="button" id="clear" hidden>Wis alles</button>
+    </div>
+    <p class="hint" id="histEmpty">Bewaarde metingen verschijnen hier, alleen op dit apparaat.</p>
+    <ul id="hist"></ul>
+  </section>
+
+  <p class="disclaimer">Dit is geen medisch apparaat. De camera ziet kleurverschil in je vingertop en schat daar een tempo uit. Gebruik het niet om iets te diagnosticeren.</p>
+  <p class="sr" id="announce" aria-live="polite"></p>
+</main>
+
+<noscript><p style="padding:1.25rem;color:#b3a89c">Pols heeft JavaScript nodig om te meten.</p></noscript>
+
+<script>
+(() => {
+'use strict';
+
+/* ---------- Signal processing (camera PPG) ---------- */
+const FS = 30;                         // uniform analysis rate (Hz)
+const TICK = 1000 / FS;                // ms per analysis sample
+const GAP_MS = 500;                    // a longer gap between camera frames restarts the signal
+const MIN_BPM = 45, MAX_BPM = 180;
+const WINDOW = 12 * FS;                // samples in one analysis window
+const KEEP = 15 * FS;                  // samples kept per channel
+const WARMUP = Math.round(1.2 * FS);   // filter settling time, never analysed
+const MIN_ANALYSIS = 6 * FS;           // shortest window that may produce a rate
+const TRUST = 0.55;                    // confidence needed to show a provisional rate
+const MIN_STD = 0.06;                  // below this the signal is just sensor noise (pixel levels)
+const F_LO = 0.69, F_HI = 3.61, F_STEP = 0.02;           // spectrum grid (Hz)
+const BINS = Math.round((F_HI - F_LO) / F_STEP) + 1;
+const B_MIN = Math.round((MIN_BPM / 60 - F_LO) / F_STEP);
+const B_MAX = Math.floor((MAX_BPM / 60 - F_LO) / F_STEP);
+const PEAK_HALF = 8;                   // bins either side of a spectral peak (0.16 Hz)
+const clamp01 = n => Math.max(0, Math.min(1, n));
+
+/* Second-order Butterworth biquad (bilinear transform). */
+function butter2(type, fc) {
+  const k = Math.tan(Math.PI * fc / FS), q = Math.SQRT1_2;
+  const norm = 1 / (1 + k / q + k * k);
+  const a1 = 2 * (k * k - 1) * norm, a2 = (1 - k / q + k * k) * norm;
+  if (type === 'low') { const b0 = k * k * norm; return { b0, b1: 2 * b0, b2: b0, a1, a2 }; }
+  return { b0: norm, b1: -2 * norm, b2: norm, a1, a2 };
+}
+const HP = butter2('high', 0.6), LP = butter2('low', 4);
+function biquad(f, s, x) {
+  const y = f.b0 * x + s[0];
+  s[0] = f.b1 * x - f.a1 * y + s[1];
+  s[1] = f.b2 * x - f.a2 * y;
+  return y;
+}
+
+/* Precomputed Goertzel coefficients and the bin holding each bin's second harmonic. */
+const COEFF = new Float64Array(BINS), HARM = new Int16Array(BINS), POWER = new Float64Array(BINS);
+for (let b = 0; b < BINS; b++) {
+  const f = F_LO + b * F_STEP;
+  COEFF[b] = 2 * Math.cos(2 * Math.PI * f / FS);
+  const h = Math.round((2 * f - F_LO) / F_STEP);
+  HARM[b] = h + 1 < BINS ? h : -1;
+}
+let hannLen = 0;
+const hann = new Float64Array(KEEP);
+function ensureHann(n) {
+  if (n === hannLen) return;
+  for (let i = 0; i < n; i++) hann[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (n - 1));
+  hannLen = n;
+}
+
+/* One colour channel: uniform-rate samples, band-passed on arrival (0.6–4 Hz). */
+class Channel {
+  constructor() { this.out = new Float64Array(KEEP); this.hp = [0, 0]; this.lp = [0, 0]; this.reset(); }
+  reset() { this.hp[0] = this.hp[1] = this.lp[0] = this.lp[1] = 0; this.primed = false; this.n = 0; this.total = 0; }
+  push(x) {
+    if (!this.primed) { this.hp[0] = -HP.b0 * x; this.hp[1] = HP.b0 * x; this.primed = true; } // start with the DC level already removed
+    const y = biquad(LP, this.lp, biquad(HP, this.hp, x));
+    if (this.n === KEEP) { this.out.copyWithin(0, 1); this.n--; }
+    this.out[this.n++] = y; this.total++;
+  }
+  settled() { return this.n - Math.max(0, WARMUP - (this.total - this.n)); }
+  segment(len) { return this.out.subarray(this.n - Math.min(len, this.settled()), this.n); }
+}
+
+/* Camera frames arrive at irregular times; resample them to a fixed rate before filtering. */
+class Pipeline {
+  constructor() { this.r = new Channel(); this.g = new Channel(); this.reset(); }
+  reset() { this.r.reset(); this.g.reset(); this.has = false; this.pt = this.pr = this.pg = this.next = 0; }
+  get seconds() { return this.r.total / FS; }
+  get ready() { return this.r.settled() > 0; }
+  push(t, r, g) {
+    if (this.has && t - this.pt > GAP_MS) this.reset();
+    if (this.has && t <= this.pt) return;
+    if (!this.has) { this.has = true; this.pt = t; this.pr = r; this.pg = g; this.next = t; }
+    while (this.next <= t) {
+      const k = t === this.pt ? 1 : (this.next - this.pt) / (t - this.pt);
+      // Blood absorbs light, so intensity drops with every pulse: invert to get peaks at the beat.
+      this.r.push(-(this.pr + (r - this.pr) * k));
+      this.g.push(-(this.pg + (g - this.pg) * k));
+      this.next += TICK;
+    }
+    this.pt = t; this.pr = r; this.pg = g;
+  }
+}
+
+const NONE = { bpm: null, confidence: 0, beats: 0, peakiness: 0, std: 0 };
+
+/* Local maxima at least `minDist` samples apart (the larger one wins), with sub-sample positions. */
+function findPeaks(seg, minDist, thr) {
+  const idx = [], val = [];
+  for (let i = 1; i < seg.length - 1; i++) {
+    const v = seg[i];
+    if (v < thr || v <= seg[i - 1] || v < seg[i + 1]) continue;
+    const last = idx.length - 1;
+    if (last < 0 || i - idx[last] >= minDist) { idx.push(i); val.push(v); }
+    else if (v > val[last]) { idx[last] = i; val[last] = v; }
+  }
+  return idx.map(i => {
+    const d = seg[i - 1] - 2 * seg[i] + seg[i + 1];
+    return i + (d < 0 ? Math.max(-0.5, Math.min(0.5, 0.5 * (seg[i - 1] - seg[i + 1]) / d)) : 0);
+  });
+}
+
+function analyzeSegment(seg) {
+  const n = seg.length;
+  let mean = 0;
+  for (let i = 0; i < n; i++) mean += seg[i];
+  mean /= n;
+  let ss = 0;
+  for (let i = 0; i < n; i++) ss += (seg[i] - mean) ** 2;
+  const std = Math.sqrt(ss / n);
+  if (std < MIN_STD) return { ...NONE, std };
+
+  // 1. Spectrum: finds the rough rate and tells how clean the rhythm is.
+  ensureHann(n);
+  for (let b = 0; b < BINS; b++) {
+    const c = COEFF[b];
+    let s1 = 0, s2 = 0;
+    for (let i = 0; i < n; i++) { const s0 = (seg[i] - mean) * hann[i] + c * s1 - s2; s2 = s1; s1 = s0; }
+    POWER[b] = s1 * s1 + s2 * s2 - c * s1 * s2;
+  }
+  // The second harmonic counts too, so a strong dicrotic notch cannot double the rate.
+  let best = B_MIN, bestScore = -1;
+  for (let b = B_MIN; b <= B_MAX; b++) {
+    const h = HARM[b];
+    const score = POWER[b] + (h > 0 ? 0.6 * Math.max(POWER[h - 1], POWER[h], POWER[h + 1]) : 0);
+    if (score > bestScore) { bestScore = score; best = b; }
+  }
+  let top = best;
+  for (let b = Math.max(1, best - 2); b <= Math.min(BINS - 2, best + 2); b++) if (POWER[b] > POWER[top]) top = b;
+  let off = 0;
+  if (top > 0 && top < BINS - 1) {
+    const d = POWER[top - 1] - 2 * POWER[top] + POWER[top + 1];
+    if (d < 0) off = Math.max(-0.5, Math.min(0.5, 0.5 * (POWER[top - 1] - POWER[top + 1]) / d));
+  }
+  const specHz = F_LO + (top + off) * F_STEP, specBpm = specHz * 60;
+  const band = (c) => { let s = 0; for (let b = Math.max(0, c - PEAK_HALF); b <= Math.min(BINS - 1, c + PEAK_HALF); b++) s += POWER[b]; return s; };
+  let total = 0;
+  for (let b = B_MIN; b < BINS; b++) total += POWER[b];
+  const h = HARM[best];
+  const peakiness = total > 0 ? Math.min(1, (band(best) + (h > 0 ? band(h) : 0)) / total) : 0;
+
+  // 2. Beat to beat timing, guided by the spectrum so notches and noise bumps are not counted as beats.
+  const period = FS / specHz;
+  const peaks = findPeaks(seg, 0.6 * period, 0.2 * std);
+  const base = { ...NONE, std, peakiness };
+  if (peaks.length < 5) return { ...base, beats: peaks.length, confidence: Math.min(0.3, peakiness * 0.4) };
+
+  const intervals = [];
+  for (let i = 1; i < peaks.length; i++) {
+    const dt = (peaks[i] - peaks[i - 1]) * TICK;
+    if (dt >= 60000 / (MAX_BPM * 1.3) && dt <= 60000 / (MIN_BPM * 0.75)) intervals.push(dt);
+  }
+  if (intervals.length < 4) return { ...base, beats: peaks.length, confidence: 0.25 };
+  const sorted = [...intervals].sort((a, b) => a - b), mid = sorted.length >> 1;
+  const median = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+  const kept = intervals.filter(dt => Math.abs(dt - median) / median < 0.2);
+  if (kept.length < 4) return { ...base, beats: peaks.length, confidence: 0.3 };
+
+  const avg = kept.reduce((s, dt) => s + dt, 0) / kept.length;
+  const sd = Math.sqrt(kept.reduce((s, dt) => s + (dt - avg) ** 2, 0) / kept.length);
+  const bpm = 60000 / avg;
+  if (bpm < MIN_BPM - 2 || bpm > MAX_BPM + 2) return { ...base, beats: peaks.length, confidence: 0.2 };
+  const gap = Math.abs(bpm - specBpm) / specBpm;
+  const agree = gap <= 0.08;
+  // Real pulses are regular, concentrated in one spectral peak, and nearly every interval agrees with the median.
+  const consistency = clamp01((kept.length / intervals.length - 0.55) / 0.35);
+  const confidence = agree ? clamp01((
+    clamp01(1 - sd / avg / 0.12) * 0.3 +
+    clamp01((peakiness - 0.3) / 0.4) * 0.4 +
+    (1 - gap / 0.08 * 0.5) * 0.15 +
+    clamp01(kept.length / 6) * 0.15) * consistency) : Math.min(0.3, peakiness * 0.4);
+  return { bpm: confidence >= TRUST ? Math.round(bpm) : null, confidence, beats: kept.length, peakiness, std };
+}
+
+/* Picks the better of the red and green signals (red saturates on some phones with the flash on). */
+function analyze(pipe, prefer) {
+  const res = {};
+  for (const name of ['r', 'g']) {
+    const ch = pipe[name];
+    res[name] = ch.settled() >= MIN_ANALYSIS ? analyzeSegment(ch.segment(WINDOW)) : NONE;
+  }
+  const other = prefer === 'g' ? 'r' : 'g';
+  const channel = res[other].confidence > res[prefer].confidence + 0.1 ? other : prefer;
+  return { ...res[channel], channel };
+}
+
+/* ---------- Finger detection ---------- */
+const COVER_OK = 0.55;                 // coverage needed to count a frame as "finger on lens"
+
+function fingerCoverage(r, g, b) {
+  const sum = r + g + b;
+  if (sum < 12) return 0;
+  const redness = r / sum, brightness = sum / 3;
+  if (redness < 0.42) return 0;
+  let score = Math.min(1, (redness - 0.42) / 0.2);
+  if (brightness < 12) score *= brightness / 12;
+  if (brightness > 235) score *= Math.max(0, (255 - brightness) / 20);
+  return clamp01(score);
+}
+
+function heartZone(bpm) {
+  if (bpm < 50) return { label: 'Laag', hint: 'Onder wat de meeste volwassenen in rust meten.' };
+  if (bpm < 60) return { label: 'Rustig', hint: 'Laag-normaal. Vaak zo bij mensen die veel bewegen.' };
+  if (bpm <= 80) return { label: 'In rust', hint: 'Een gebruikelijk bereik als je stilzit.' };
+  if (bpm <= 100) return { label: 'Verhoogd', hint: 'Kan komen door bewegen, stress of cafeïne.' };
+  return { label: 'Hoog', hint: 'Boven de 100. Dit zegt niets definitiefs over je gezondheid.' };
+}
+
+/* ---------- Camera ---------- */
+function cameraError(err) {
+  const name = err && err.name || '';
+  if (name === 'NotAllowedError' || name === 'SecurityError') return 'Cameratoegang geweigerd. Sta de camera toe in je browser en probeer opnieuw.';
+  if (name === 'NotFoundError' || name === 'OverconstrainedError') return 'Geen bruikbare camera gevonden op dit apparaat.';
+  if (name === 'NotReadableError') return 'De camera is in gebruik door een andere app.';
+  return 'De camera kon niet starten.';
+}
+
+async function openCamera() {
+  const size = { width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { ideal: 30 } };
+  const tries = [
+    { audio: false, video: { facingMode: { ideal: 'environment' }, ...size } },
+    { audio: false, video: { facingMode: 'user', ...size } },
+    { audio: false, video: true }
+  ];
+  let last;
+  for (const constraints of tries) {
+    try { return await navigator.mediaDevices.getUserMedia(constraints); }
+    catch (e) {
+      last = e;
+      if (e && (e.name === 'NotAllowedError' || e.name === 'SecurityError')) throw e;
+    }
+  }
+  throw last || new Error('camera');
+}
+
+async function enableTorch(track) {
+  const caps = track.getCapabilities && track.getCapabilities();
+  if (!caps || !caps.torch) return false;
+  try { await track.applyConstraints({ advanced: [{ torch: true }] }); return true; }
+  catch { return false; }
+}
+
+/* ---------- Storage ---------- */
+const KEY = 'pols.readings.v1';
+const MAX_HISTORY = 20;
+function loadReadings() {
+  try {
+    const data = JSON.parse(localStorage.getItem(KEY) || '[]');
+    if (!Array.isArray(data)) return [];
+    return data.filter(i => i && typeof i.bpm === 'number' && typeof i.at === 'number' && i.bpm > 30 && i.bpm < 220).slice(0, MAX_HISTORY);
+  } catch { return []; }
+}
+const fmtWhen = new Intl.DateTimeFormat('nl-NL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+/* ---------- State ---------- */
+const $ = id => document.getElementById(id);
+const el = {};
+['lens','video','idle','idleHeart','liveHeart','torch','bpm','zone','status','beats','saved','trace','cover','coverLabel','coverFill','progressLabel','progressFill','noTorch','main','save','steps','hist','histEmpty','clear','announce'].forEach(id => el[id] = $(id));
+
+const MIN_LOCK_SECONDS = 10;           // shortest measurement that may give a final rate
+const LOCK_CONFIDENCE = 0.7;           // confidence every analysis must reach to count towards a lock
+const LOCK_COUNT = 10;                 // consecutive analyses (2.5 s) that must agree
+const LOCK_SPREAD = 3;                 // ...within this many bpm
+const ANALYSIS_MS = 250, UI_MS = 120;
+const NO_FINGER_MS = 45000;            // give up when no finger shows up
+const MEASURE_MS = 60000;              // give up when no steady rhythm shows up
+const STALL_MS = 3000;                 // give up when the camera stops delivering frames
+const TRACE_SAMPLES = Math.round(4.5 * FS);
+const USE_VFC = typeof HTMLVideoElement !== 'undefined' && 'requestVideoFrameCallback' in HTMLVideoElement.prototype;
+
+const IDLE = { phase: 'idle', bpm: null, locked: false, coverage: 0, seconds: 0, beats: 0 };
+const S = { running: false, torch: false, facingUser: false, error: null, saved: false, history: loadReadings(), live: { ...IDLE } };
+const R = {
+  stream: null, pipe: new Pipeline(), channel: 'r', handle: 0, mediaTime: -1, starting: false, wake: null, watch: 0,
+  canvas: null, ctx: null, gain: 1, recent: [], bpm: null, beats: 0, beatAt: 0, scanTotal: 0,
+  startedAt: 0, fingerAt: 0, lostAt: 0, frameAt: 0, analysisAt: 0, uiAt: 0, wasResult: false, lastSay: ''
+};
+
+function beat(node) {
+  node.classList.remove('beat');
+  void node.getBoundingClientRect();
+  node.classList.add('beat');
+}
+
+function persist(next) {
+  S.history = next;
+  try { localStorage.setItem(KEY, JSON.stringify(next)); } catch { /* private mode: keep it in memory only */ }
+  renderHistory();
+}
+
+function commitReading(bpm) {
+  persist([{ bpm, at: Date.now() }, ...S.history].slice(0, MAX_HISTORY));
+  S.saved = true;
+}
+
+/* ---------- Rendering ---------- */
+function renderHistory() {
+  el.hist.textContent = '';
+  for (const item of S.history) {
+    const li = document.createElement('li');
+    const n = document.createElement('span'); n.className = 'n'; n.textContent = item.bpm;
+    const z = document.createElement('span'); z.className = 'z'; z.textContent = heartZone(item.bpm).label;
+    const t = document.createElement('time'); t.dateTime = new Date(item.at).toISOString(); t.textContent = fmtWhen.format(item.at);
+    li.append(n, z, t);
+    el.hist.append(li);
+  }
+  el.histEmpty.hidden = S.history.length > 0;
+  el.clear.hidden = S.history.length === 0;
+}
+
+function announce(text) {
+  if (text === R.lastSay) return;
+  R.lastSay = text;
+  el.announce.textContent = text;
+}
+
+function render() {
+  const L = S.live;
+  const measuring = S.running || L.phase === 'requesting';
+  const showResult = !measuring && L.bpm != null;
+  const zone = L.bpm != null ? heartZone(L.bpm) : null;
+
+  el.lens.classList.toggle('on', S.running && L.coverage >= COVER_OK);
+  el.video.classList.toggle('mirror', S.facingUser);
+  el.video.classList.toggle('off', !S.running);
+  el.idle.hidden = S.running;
+  el.liveHeart.hidden = !S.running;
+  if (showResult && !R.wasResult) beat(el.idleHeart);
+  R.wasResult = showResult;
+
+  el.torch.hidden = !S.torch;
+  el.bpm.textContent = L.bpm != null ? L.bpm : '—';
+  el.bpm.classList.toggle('provisional', measuring && !L.locked);
+
+  el.zone.hidden = !showResult;
+  if (showResult) el.zone.textContent = zone.label;
+
+  let status = 'Klaar wanneer jij dat bent.';
+  if (L.phase === 'requesting') status = 'Camera starten…';
+  else if (measuring) {
+    if (L.phase === 'need-finger') status = 'Leg je vingertop op de lens.';
+    else if (L.seconds < MIN_LOCK_SECONDS) status = 'Blijf stil en adem rustig door.';
+    else status = 'Bijna klaar. Houd je vinger rustig op de lens.';
+  } else if (showResult) status = zone.hint;
+  else if (S.error) status = S.error;
+  el.status.textContent = status;
+
+  const showBeats = measuring && L.phase !== 'need-finger' && L.beats > 0;
+  el.beats.hidden = !showBeats;
+  if (showBeats) el.beats.textContent = L.beats === 1 ? '1 slag gezien' : L.beats + ' slagen gezien';
+  el.saved.hidden = !showResult;
+  if (showResult) el.saved.textContent = S.saved ? 'Bewaard in je geschiedenis.' : 'Tussentijdse schatting. De meting was nog niet afgerond.';
+
+  el.cover.hidden = !S.running;
+  el.coverLabel.textContent = L.coverage >= COVER_OK ? 'Vinger gezien' : L.coverage >= 0.25 ? 'Bijna bedekt' : 'Lens vrij';
+  el.coverFill.style.transform = 'scaleX(' + Math.max(0.04, L.coverage) + ')';
+  const done = Math.min(L.seconds, MIN_LOCK_SECONDS);
+  el.progressLabel.textContent = done + ' van ' + MIN_LOCK_SECONDS + ' s';
+  el.progressFill.style.transform = 'scaleX(' + Math.max(0.02, done / MIN_LOCK_SECONDS) + ')';
+  el.noTorch.hidden = !(!S.torch && L.coverage < COVER_OK);
+
+  if (measuring) {
+    el.main.textContent = L.phase === 'requesting' ? 'Even wachten…' : 'Stop';
+    el.main.disabled = L.phase === 'requesting';
+    el.main.className = 'btn ghost';
+  } else {
+    el.main.textContent = showResult || S.error ? 'Opnieuw meten' : 'Start meting';
+    el.main.disabled = false;
+    el.main.className = 'btn primary';
+  }
+  el.save.hidden = !(showResult && !S.saved);
+  el.steps.hidden = measuring;
+
+  // Screen readers get one short message per change, not a running commentary.
+  if (L.phase === 'requesting') announce('Camera starten');
+  else if (measuring) announce(L.phase === 'need-finger' ? 'Leg je vingertop op de lens' : 'Meten. Blijf stil.');
+  else if (showResult) announce(L.bpm + ' slagen per minuut. ' + zone.label + '.');
+  else if (S.error) announce(S.error);
+  else announce('');
+}
+
+/* ---------- Measuring ---------- */
+function sampleFrame(video) {
+  if (video.readyState < 2 || !video.videoWidth) return null;
+  if (!R.canvas) {
+    R.canvas = document.createElement('canvas');
+    R.canvas.width = R.canvas.height = 16;
+    R.ctx = R.canvas.getContext('2d', { willReadFrequently: true });
+    if (R.ctx) R.ctx.imageSmoothingQuality = 'high';
+  }
+  if (!R.ctx) return null;
+  const side = Math.min(video.videoWidth, video.videoHeight) * 0.45;
+  R.ctx.drawImage(video, (video.videoWidth - side) / 2, (video.videoHeight - side) / 2, side, side, 0, 0, 16, 16);
+  const d = R.ctx.getImageData(0, 0, 16, 16).data;
+  let r = 0, g = 0, b = 0;
+  for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; }
+  const n = d.length / 4;
+  return { r: r / n, g: g / n, b: b / n };
+}
+
+function paintTrace() {
+  const seg = R.pipe[R.channel].segment(TRACE_SAMPLES);
+  if (seg.length < 8) { el.trace.setAttribute('points', ''); return; }
+  let peak = 0;
+  for (let i = 0; i < seg.length; i++) peak = Math.max(peak, Math.abs(seg[i]));
+  R.gain = peak > R.gain ? peak : R.gain * 0.97 + peak * 0.03;
+  const scale = Math.max(R.gain, 0.15);
+  const pts = new Array(seg.length);
+  for (let i = 0; i < seg.length; i++) {
+    const x = 300 - (seg.length - 1 - i) / (TRACE_SAMPLES - 1) * 300;   // new samples enter from the right
+    const y = Math.min(94, Math.max(2, 48 - seg[i] / scale * 38.4));
+    pts[i] = x.toFixed(1) + ',' + y.toFixed(1);
+  }
+  el.trace.setAttribute('points', pts.join(' '));
+}
+
+/* Spots each new top of the filtered wave right away, so the heart pulses in time with the line. */
+function scanBeats(now) {
+  const ch = R.pipe[R.channel];
+  const fresh = ch.total - R.scanTotal;
+  R.scanTotal = ch.total;
+  if (!ch.settled() || R.gain < 0.15) return;
+  const gap = Math.max(300, 0.5 * 60000 / (R.bpm || 100));
+  for (let k = Math.min(fresh, ch.n - 2); k >= 1; k--) {
+    const c = ch.n - 1 - k, o = ch.out;
+    if (c >= 1 && o[c] > o[c - 1] && o[c] >= o[c + 1] && o[c] > 0.35 * R.gain && now - R.beatAt > gap) {
+      R.beatAt = now; R.beats++;
+      beat(el.liveHeart);
+    }
+  }
+}
+
+function runAnalysis(coverage) {
+  const a = analyze(R.pipe, R.channel);
+  R.channel = a.channel;
+  R.bpm = a.bpm;
+  if (a.bpm != null && a.confidence >= LOCK_CONFIDENCE) {
+    R.recent.push(a.bpm);
+    if (R.recent.length > LOCK_COUNT) R.recent.shift();
+  } else R.recent.length = 0;
+  if (coverage >= COVER_OK && R.pipe.seconds >= MIN_LOCK_SECONDS && R.recent.length >= LOCK_COUNT &&
+      Math.max(...R.recent) - Math.min(...R.recent) <= LOCK_SPREAD) {
+    const sorted = [...R.recent].sort((x, y) => x - y);
+    finish(sorted[sorted.length >> 1]);
+  }
+}
+
+function finish(bpm) {
+  S.live = { ...S.live, bpm, locked: true };
+  commitReading(bpm);
+  try { if (navigator.vibrate) navigator.vibrate(40); } catch { /* not supported */ }
+  stop();
+}
+
+function step(now) {
+  const rgb = sampleFrame(el.video);
+  if (!rgb) return;
+  R.frameAt = now;
+  const coverage = fingerCoverage(rgb.r, rgb.g, rgb.b);
+  const pipe = R.pipe;
+
+  if (coverage >= COVER_OK) {
+    R.lostAt = 0;
+    if (!R.fingerAt) R.fingerAt = now;
+    pipe.push(now, rgb.r, rgb.g);
+  } else if (!R.lostAt) {
+    R.lostAt = now;
+  } else if (now - R.lostAt > 1000 && pipe.has) {
+    pipe.reset(); R.recent.length = 0; R.bpm = null; R.beats = 0; R.scanTotal = 0; R.gain = 1;
+  }
+
+  if (pipe.ready) { scanBeats(now); paintTrace(); }
+  else el.trace.setAttribute('points', '');
+
+  if (now - R.analysisAt >= ANALYSIS_MS) {
+    R.analysisAt = now;
+    if (S.running) runAnalysis(coverage);
+    if (!S.running) return;
+  }
+
+  if (now - R.uiAt >= UI_MS) {
+    R.uiAt = now;
+    const phase = coverage < COVER_OK ? 'need-finger' : R.bpm == null ? 'locking' : 'live';
+    S.live = { phase, bpm: R.bpm, locked: false, coverage, seconds: Math.floor(pipe.seconds), beats: R.beats };
+    render();
+  }
+}
+
+function guarded(now) {
+  try { step(now); }
+  catch (err) {
+    S.error = 'Er ging iets mis tijdens het meten. Probeer opnieuw.';
+    S.live = { ...S.live, bpm: null, locked: false };
+    stop();
+  }
+}
+
+function schedule() {
+  if (USE_VFC) R.handle = el.video.requestVideoFrameCallback(onVideoFrame);
+  else R.handle = requestAnimationFrame(onAnimationFrame);
+}
+function onVideoFrame(now) { if (!S.running) return; schedule(); guarded(now); }
+function onAnimationFrame(now) {
+  if (!S.running) return;
+  schedule();
+  const mediaTime = el.video.currentTime;          // without frame callbacks, only look at frames the camera really delivered
+  if (mediaTime === R.mediaTime) return;
+  R.mediaTime = mediaTime;
+  guarded(now);
+}
+
+/* Runs once a second, because frame callbacks stop when the camera stalls. */
+function watchdog() {
+  if (!S.running) return;
+  const now = performance.now();
+  let problem = null;
+  if (now - R.frameAt > STALL_MS) problem = 'De camera levert geen beeld meer. Probeer opnieuw.';
+  else if (!R.fingerAt && now - R.startedAt > NO_FINGER_MS) problem = 'Geen vinger gezien. Leg je vingertop zacht op de lens en probeer opnieuw.';
+  else if (R.fingerAt && now - R.fingerAt > MEASURE_MS) problem = 'Geen stabiel signaal gevonden. Houd je vinger rustig op de lens, zonder hard te drukken, en probeer opnieuw.';
+  if (!problem) return;
+  S.error = problem;
+  S.live = { ...S.live, bpm: null, locked: false };
+  stop();
+}
+
+async function holdScreen() {
+  try { if ('wakeLock' in navigator) R.wake = await navigator.wakeLock.request('screen'); }
+  catch { R.wake = null; }
+}
+function releaseScreen() {
+  if (R.wake) { R.wake.release().catch(() => {}); R.wake = null; }
+}
+
+function releaseStream() {
+  if (R.stream) R.stream.getTracks().forEach(t => t.stop());
+  R.stream = null;
+  el.video.srcObject = null;
+  S.torch = false;
+}
+
+function stop() {
+  S.running = false;
+  if (USE_VFC) el.video.cancelVideoFrameCallback(R.handle); else cancelAnimationFrame(R.handle);
+  clearInterval(R.watch);
+  releaseScreen();
+  releaseStream();
+  S.live = { ...S.live, phase: 'idle', coverage: 0, seconds: 0 };
+  render();
+}
+
+async function start() {
+  if (R.starting || S.running) return;
+  R.starting = true;
+  S.error = null; S.saved = false;
+  R.pipe.reset();
+  Object.assign(R, { channel: 'r', mediaTime: -1, gain: 1, recent: [], bpm: null, beats: 0, beatAt: 0, scanTotal: 0, fingerAt: 0, lostAt: 0, analysisAt: 0, uiAt: 0 });
+  el.trace.setAttribute('points', '');
+  S.live = { ...IDLE, phase: 'requesting' };
+  render();
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    S.error = 'Deze browser kan de camera niet gebruiken. Open de pagina via een beveiligde verbinding.';
+    S.live = { ...IDLE, phase: 'error' };
+    R.starting = false;
+    render();
+    return;
+  }
+  try {
+    const stream = await openCamera();
+    if (document.visibilityState === 'hidden') {   // the page was sent to the background while the permission prompt was open
+      stream.getTracks().forEach(t => t.stop());
+      S.live = { ...IDLE };
+      render();
+      return;
+    }
+    R.stream = stream;
+    el.video.muted = true;
+    el.video.srcObject = stream;
+    await el.video.play();
+    const track = stream.getVideoTracks()[0];
+    const facing = track && track.getSettings && track.getSettings().facingMode;
+    S.facingUser = facing === 'user';
+    S.torch = track ? await enableTorch(track) : false;
+    if (track) track.addEventListener('ended', () => {
+      if (!S.running) return;
+      S.error = 'De camera is gestopt. Probeer opnieuw.';
+      S.live = { ...S.live, bpm: null, locked: false };
+      stop();
+    });
+    S.running = true;
+    R.startedAt = R.frameAt = performance.now();
+    R.watch = setInterval(watchdog, 1000);
+    holdScreen();
+    S.live = { ...IDLE, phase: 'need-finger' };
+    render();
+    schedule();
+  } catch (err) {
+    releaseStream();
+    S.running = false;
+    S.error = cameraError(err);
+    S.live = { ...IDLE, phase: 'error' };
+    render();
+  } finally {
+    R.starting = false;
+  }
+}
+
+/* ---------- Events ---------- */
+let armTimer = 0;
+function disarmClear() {
+  clearTimeout(armTimer);
+  delete el.clear.dataset.armed;
+  el.clear.textContent = 'Wis alles';
+}
+
+el.main.addEventListener('click', () => (S.running ? stop() : start()));
+el.save.addEventListener('click', () => { if (S.live.bpm != null) { commitReading(S.live.bpm); render(); } });
+el.clear.addEventListener('click', () => {
+  if (el.clear.dataset.armed) { disarmClear(); persist([]); return; }
+  el.clear.dataset.armed = '1';
+  el.clear.textContent = 'Zeker weten?';
+  armTimer = setTimeout(disarmClear, 4000);
+});
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && S.running) stop(); });
+window.addEventListener('pagehide', () => { clearInterval(R.watch); releaseStream(); });
+
+renderHistory();
+render();
+})();
+</script>
+<script>
+/* Offline support: only on http(s); a file opened from disk simply skips this. */
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+  addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+</script>
+</body>
+</html>
