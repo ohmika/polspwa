@@ -1,5 +1,5 @@
 /* Pols service worker: keeps the app working offline. Bump VERSION when a file changes. */
-const VERSION = 'pols-v1';
+const VERSION = 'pols-v2';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', event => {
