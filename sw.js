@@ -1,6 +1,6 @@
 /* Pols service worker: keeps the app working offline.
    Bump this when you change the app shell or assets. */
-const CACHE_VERSION = 'pols-v3';
+const CACHE_VERSION = 'pols-v4';
 const APP_SHELL = [
   './',
   './index.html',
