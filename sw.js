@@ -1,35 +1,72 @@
-/* Pols service worker: keeps the app working offline. Bump VERSION when a file changes. */
-const VERSION = 'pols-v2';
-const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'];
+/* Pols service worker: keeps the app working offline.
+   Bump this when you change the app shell or assets. */
+const CACHE_VERSION = 'pols-v3';
+const APP_SHELL = [
+  './',
+  './index.html',
+  './manifest.webmanifest',
+  './apple-touch-icon.png',
+  './icon-192.png',
+  './icon-512.png',
+  './icon-maskable-512.png'
+];
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(VERSION).then(cache => cache.addAll(FILES)).then(() => self.skipWaiting()));
+  event.waitUntil(
+    caches.open(CACHE_VERSION)
+      .then(cache => cache.addAll(APP_SHELL))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== VERSION).map(k => caches.delete(k))))
+      .then(keys => Promise.all(
+        keys
+          .filter(key => key !== CACHE_VERSION)
+          .map(key => caches.delete(key))
+      ))
       .then(() => self.clients.claim())
   );
 });
 
-/* Stale-while-revalidate: answer from the cache right away, refresh it in the background. */
 self.addEventListener('fetch', event => {
-  const req = event.request;
-  if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
-  event.respondWith((async () => {
-    const cache = await caches.open(VERSION);
-    const cached = await cache.match(req, { ignoreSearch: true });
-    const refresh = fetch(req).then(res => {
-      if (res && res.ok) cache.put(req, res.clone());
-      return res;
-    });
-    if (cached) { refresh.catch(() => {}); return cached; }
-    try { return await refresh; }
-    catch (err) {
-      if (req.mode === 'navigate') { const page = await cache.match('./index.html'); if (page) return page; }
-      throw err;
-    }
-  })());
+  const request = event.request;
+
+  // Ignore non-GET requests and requests to other origins
+  if (request.method !== 'GET') return;
+  if (new URL(request.url).origin !== self.location.origin) return;
+
+  // Navigation requests: prefer network, fallback to cache
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then(response => {
+          if (response && response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_VERSION).then(cache => cache.put('./index.html', copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match('./index.html'))
+    );
+    return;
+  }
+
+  // For same-origin static assets, use a stale-while-revalidate strategy
+  event.respondWith(
+    caches.match(request, { ignoreSearch: true }).then(cached => {
+      const fetchPromise = fetch(request)
+        .then(response => {
+          if (response && response.ok) {
+            caches.open(CACHE_VERSION).then(cache => cache.put(request, response.clone()));
+          }
+          return response;
+        })
+        .catch(() => cached);
+
+      return cached || fetchPromise;
+    })
+  );
 });
