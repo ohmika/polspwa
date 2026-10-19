@@ -601,7 +601,7 @@
 
       const runtime = {
         stream: null,
-        pipe: new Pipeline(),
+        pipe: null,
         channel: 'r',
         handle: 0,
         mediaTime: -1,
@@ -917,6 +917,8 @@
           this.pg = g;
         }
       }
+
+      runtime.pipe = new Pipeline();
 
       function findPeaks(seg, minDist, thr) {
         const idx = [];
